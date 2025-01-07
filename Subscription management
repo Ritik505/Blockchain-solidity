@@ -1,0 +1,78 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.26;
+
+contract Subscription {
+    struct Subscriber {
+        address user;
+        string email;
+        address subscriberAddress;
+        mapping(uint => bool) notificationIDToSeen;
+    }
+
+    uint public currentNotificationId = 0;
+    address public admin;
+    mapping(address => Subscriber) public subscribers;
+    address[] public subscriberList;
+
+    event Subscribed(address indexed user, address indexed subscriberAddress, string email);
+    event Unsubscribed(address indexed user, address indexed subscriberAddress);
+    event NotificationSent(uint notificationId, string message, address indexed to);
+    event NotificationSeen(address indexed user, uint notificationId);
+
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "Only admin can perform this action");
+        _;
+    }
+
+    constructor() {
+        admin = msg.sender;
+    }
+
+    function subscribe(string memory email, address subscriberAddress) external {
+        require(subscribers[msg.sender].user == address(0), "Already subscribed");
+        Subscriber storage newSubscriber = subscribers[msg.sender];
+        newSubscriber.user = msg.sender;
+        newSubscriber.email = email;
+        newSubscriber.subscriberAddress = subscriberAddress;
+
+        subscriberList.push(msg.sender);
+
+        emit Subscribed(msg.sender, subscriberAddress, email);
+    }
+
+    function unsubscribe() external {
+        require(subscribers[msg.sender].user != address(0), "Not subscribed");
+        address subscriberAddress = subscribers[msg.sender].subscriberAddress;
+
+        delete subscribers[msg.sender];
+
+        for (uint i = 0; i < subscriberList.length; i++) {
+            if (subscriberList[i] == msg.sender) {
+                subscriberList[i] = subscriberList[subscriberList.length - 1];
+                subscriberList.pop();
+                break;
+            }
+        }
+
+        emit Unsubscribed(msg.sender, subscriberAddress);
+    }
+
+    function sendNotification(string memory message, address to) external onlyAdmin {
+        require(subscribers[to].user != address(0), "User not subscribed");
+        currentNotificationId++;
+        emit NotificationSent(currentNotificationId, message, to);
+    }
+
+    function markNotificationAsSeen(uint notificationId) external {
+        require(subscribers[msg.sender].user != address(0), "Not subscribed");
+        require(!subscribers[msg.sender].notificationIDToSeen[notificationId], "Notification already marked as seen");
+
+        subscribers[msg.sender].notificationIDToSeen[notificationId] = true;
+
+        emit NotificationSeen(msg.sender, notificationId);
+    }
+
+    function getTotalSubscribers() external view returns (uint) {
+        return subscriberList.length;
+    }
+}
