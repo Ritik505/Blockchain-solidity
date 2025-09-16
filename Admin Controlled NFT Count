@@ -1,0 +1,77 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.18;
+
+contract NFTCount {
+    uint256 public numberOfNFT;
+
+    address public owner;
+    mapping(address => bool) public admins;
+
+    event NFTAdded(uint256 newCount);
+    event NFTDeleted(uint256 newCount);
+    event NFTCountReset(uint256 newCount);
+    event NFTCountSet(uint256 newCount);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event AdminAdded(address indexed admin);
+    event AdminRemoved(address indexed admin);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner can call this");
+        _;
+    }
+
+    modifier onlyAdmin() {
+        require(admins[msg.sender] || msg.sender == owner, "Only admins or owner can call this");
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+        admins[msg.sender] = true;
+        numberOfNFT = 0;
+    }
+
+    function addAdmin(address _admin) public onlyOwner {
+        require(_admin != address(0), "Invalid admin address");
+        admins[_admin] = true;
+        emit AdminAdded(_admin);
+    }
+
+    function removeAdmin(address _admin) public onlyOwner {
+        require(admins[_admin], "Address is not an admin");
+        admins[_admin] = false;
+        emit AdminRemoved(_admin);
+    }
+
+    function transferOwnership(address newOwner) public onlyOwner {
+        require(newOwner != address(0), "New owner cannot be zero address");
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
+        admins[newOwner] = true; 
+    }
+
+    function getTotalNFT() public view returns (uint256) {
+        return numberOfNFT;
+    }
+
+    function addNFT() public onlyAdmin {
+        numberOfNFT++;
+        emit NFTAdded(numberOfNFT);
+    }
+
+    function deleteNFT() public onlyAdmin {
+        require(numberOfNFT > 0, "No NFTs to delete");
+        numberOfNFT--;
+        emit NFTDeleted(numberOfNFT);
+    }
+
+    function resetNFTCount() public onlyAdmin {
+        numberOfNFT = 0;
+        emit NFTCountReset(numberOfNFT);
+    }
+
+    function setNFTCount(uint256 _count) public onlyAdmin {
+        numberOfNFT = _count;
+        emit NFTCountSet(numberOfNFT);
+    }
+}
