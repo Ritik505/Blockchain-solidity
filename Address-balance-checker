@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+contract Functions {
+    function global() public view returns (address) {
+        return msg.sender;
+    }
+
+    function amount() public view  returns (uint) { 
+        return msg.sender.balance;
+    }
+}
